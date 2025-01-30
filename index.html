@@ -11,7 +11,7 @@
     <link rel="icon" href="/images/camera_256.png" sizes="256x256">
     <meta name="theme-color" content="white">
       <!-- Scripts -->
-      <script type="module" src="js/db.js"></script>
+      <!--<script type="module" src="js/db.js"></script>-->
       <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -25,9 +25,10 @@
     <video id="camera-view" autoplay playsinline style="width: 300px; height: 200px;"></video>
     <canvas id="camera-sensor" style="display:none;"></canvas>
     <button id="cameraButton">Abrir Câmera</button>
-    <button id="camera--trigger">Capturar Imagem</button>
+    
     <img id="camera-output" alt="Foto capturada" style="display:none; width: 100px; height: 75px;">
 </main>
+<button id="camera--trigger">Capturar Imagem</button>
 
     <!-- Armazena capturas de tela na parte inferior -->
     <div id="camera-output-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 20px;"></div>
