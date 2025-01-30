@@ -1,3 +1,5 @@
+
+
 // Verifica se o navegador suporta Service Workers
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
@@ -11,8 +13,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Aguarda o carregamento do DOM
-document.addEventListener("DOMContentLoaded", () => {
-    // Captura elementos da interface
+document.addEventListener("DOMContentLoaded", async () => {
     const cameraView = document.getElementById("camera-view");
     const cameraSensor = document.getElementById("camera-sensor");
     const cameraOutputContainer = document.getElementById("camera-output-container");
@@ -23,20 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const itemInput = document.getElementById("itemInput");
     const itemList = document.getElementById("itemList");
 
-    let shoppingList = JSON.parse(localStorage.getItem("shoppingList")) || [];
+    // Lista de compras obtida do IndexedDB
+    let shoppingList = await getData();
 
-    // Configuração da câmera
     const configCamera = { video: { facingMode: "environment" }, audio: false };
 
-    // Ajusta a posição da câmera se o container existir
-    if (cameraContainer) {
-        cameraContainer.style.display = "flex";
-        cameraContainer.style.justifyContent = "center";
-        cameraContainer.style.alignItems = "center";
-        cameraContainer.style.marginTop = "20px";
-    }
-
-    // Função para iniciar a câmera
     function iniciarCamera() {
         if (!cameraView) return;
         
@@ -51,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // Função para capturar imagem e exibir na tela
     function capturarImagem() {
         if (!cameraSensor || !cameraView || !cameraOutputContainer) return;
 
@@ -69,51 +60,44 @@ document.addEventListener("DOMContentLoaded", () => {
         cameraOutputContainer.appendChild(img);
     }
 
-    // Função para atualizar a lista de compras
     function atualizarLista() {
         if (!itemList) return;
 
         itemList.innerHTML = "";
-        shoppingList.forEach((item, index) => {
+        shoppingList.forEach((item) => {
             const li = document.createElement("li");
-            li.textContent = item;
+            li.textContent = item.nome;
 
             const deleteButton = document.createElement("button");
             deleteButton.textContent = "❌";
             deleteButton.style.marginLeft = "10px";
-            deleteButton.onclick = () => removerItem(index);
+            deleteButton.onclick = async () => {
+                await remover(item.id);
+                shoppingList = await getData();
+                atualizarLista();
+            };
 
             li.appendChild(deleteButton);
             itemList.appendChild(li);
         });
     }
 
-    // Função para adicionar item à lista
-    function adicionarItem() {
+    async function adicionarItem() {
         if (!itemInput) return;
 
         const item = itemInput.value.trim();
         if (item) {
-            shoppingList.push(item);
-            localStorage.setItem("shoppingList", JSON.stringify(shoppingList));
+            await addData(item);
+            shoppingList = await getData();
             atualizarLista();
             itemInput.value = "";
         }
     }
 
-    // Função para remover item da lista
-    function removerItem(index) {
-        shoppingList.splice(index, 1);
-        localStorage.setItem("shoppingList", JSON.stringify(shoppingList));
-        atualizarLista();
-    }
-
-    // Adicionando eventos apenas se os elementos existirem
     if (addItemButton) addItemButton.addEventListener("click", adicionarItem);
     if (cameraButton) cameraButton.addEventListener("click", iniciarCamera);
     if (captureButton) captureButton.addEventListener("click", capturarImagem);
 
-    // Atualiza a lista de compras e inicia a câmera ao carregar a página
     atualizarLista();
     iniciarCamera();
 });

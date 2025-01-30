@@ -1,114 +1,80 @@
 import { openDB } from "idb";
-
 let db;
 
-async function createDB() {
-    try {
-        db = await openDB('shoppingDB', 1, {
-            upgrade(db) {
-                if (!db.objectStoreNames.contains('shoppingList')) {
-                    const store = db.createObjectStore('shoppingList', {
-                        keyPath: 'id',
-                        autoIncrement: true
-                    });
-                    store.createIndex('name', 'name', { unique: false });
-                    console.log("Banco de dados de Lista de Compras criado!");
+async function createDB( ) {
+    try{
+        db = await openDB('banco', 1 , {
+            upgrade(db, oldeVersion, newVersion, transaction){
+                switch(oldeVersion){
+                    case 0:
+                    case 1: 
+                        const store = db.createObjectStore('pessoas', {
+                            //a propriedade nome será o campo chave
+                            keyPath:'nome'
+                        });
+                        //crinado um indice id na store, deve estar contido no objeto do banco.
+                        store.createIndex('id','id');
+                        showResult('Banco de dados criado!');
                 }
             }
         });
-        console.log("Banco de dados aberto.");
-    } catch (e) {
-        console.error("Erro ao criar o banco de dados:", e.message);
+        showResult('Banco de dados aberto');
+    }catch (e) {
+        showResult('Erro ao criar o banco de dados: '+ e.message)
     }
 }
 
-// Aguarda o carregamento do DOM antes de inicializar
-document.addEventListener("DOMContentLoaded", async () => {
-    await createDB();
-    
-    const addItemButton = document.getElementById("addItem");
-    const itemInput = document.getElementById("itemInput");
-    const itemList = document.getElementById("itemList");
+window.addEventListener('DOMContentLoaded', async event =>{
+    createDB();
+    document.getElementById('input');
+    document.getElementById('btnSalvar').addEventListener('click', addData);
+    document.getElementById('btnListar').addEventListener('click', getData);
+})
 
-    if (addItemButton) {
-        addItemButton.addEventListener("click", addData);
-    }
-
-    if (itemInput && itemList) {
-        getData();
-    }
-});
-
-async function getData() {
+async function addData(nome) {
     if (!db) {
         console.error("O banco de dados ainda não foi inicializado.");
         return;
     }
-    const tx = db.transaction('shoppingList', 'readonly');
-    const store = tx.objectStore('shoppingList');
-    const value = await store.getAll();
-
-    const itemList = document.getElementById("itemList");
-    if (!itemList) return;
-    
-    itemList.innerHTML = "";
-
-    if (value.length > 0) {
-        value.forEach(item => {
-            const listItem = document.createElement("li");
-            listItem.textContent = item.name;
-
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "❌";
-            deleteButton.style.marginLeft = "10px";
-            deleteButton.onclick = () => removerItem(item.id);
-
-            listItem.appendChild(deleteButton);
-            itemList.appendChild(listItem);
-        });
-    } else {
-        console.log("Não há itens na lista de compras!");
-    }
-}
-
-async function addData() {
-    const itemInput = document.getElementById("itemInput");
-    if (!itemInput) return;
-
-    let name = itemInput.value.trim();
-    if (!name) return;
-
-    if (!db) {
-        console.error("Banco de dados não inicializado.");
-        return;
-    }
-
-    const tx = db.transaction('shoppingList', 'readwrite');
-    const store = tx.objectStore('shoppingList');
+    const tx = db.transaction('compras', 'readwrite');
+    const store = tx.objectStore('compras');
     try {
-        await store.add({ name });
+        await store.add({ nome });
         await tx.done;
-        console.log('Item adicionado com sucesso!');
-        itemInput.value = "";
-        getData();
+        console.log('Registro adicionado com sucesso!');
     } catch (error) {
-        console.error('Erro ao adicionar item:', error);
+        console.error('Erro ao adicionar registro:', error);
     }
 }
 
-async function removerItem(id) {
+async function getData() {
     if (!db) {
-        console.error("Banco de dados não inicializado.");
+        console.error("O banco de dados está fechado");
+        return [];
+    }
+    const tx = db.transaction('compras', 'readonly');
+    const store = tx.objectStore('compras');
+    return await store.getAll();
+}
+
+async function remover(id) {
+    if (!db) {
+        console.error("O banco de dados ainda não foi inicializado.");
         return;
     }
-
-    const tx = db.transaction('shoppingList', 'readwrite');
-    const store = tx.objectStore('shoppingList');
+    const tx = db.transaction('compras', 'readwrite');
+    const store = tx.objectStore('compras');
     try {
         await store.delete(id);
-        console.log('Item removido com sucesso!');
-        getData();
+        await tx.done;
+        console.log('Registro removido com sucesso!');
     } catch (error) {
-        console.error('Erro ao remover item:', error);
+        console.error('Erro ao remover registro:', error);
     }
 }
+
+// Inicializa o banco de dados ao carregar o script
+createDB();
+
+// Exportando funções para serem usadas em main.js
+export { addData, getData, remover };
