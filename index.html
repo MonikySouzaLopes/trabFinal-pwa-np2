@@ -1,13 +1,33 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lista de Compras</title>
+    <link rel="stylesheet" href="/CSS/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="/images/icon-256_ios.png">
+    <link rel="icon" href="/images/camera_256.png" sizes="256x256">
+    <meta name="theme-color" content="white">
+</head>
+<body>
+    <h1>Minha Lista de Compras</h1>
+    <input type="text" id="itemInput" placeholder="Digite um item">
+    <button id="addItem">Adicionar</button>
+    <ul id="itemList"></ul>
+    
+    <!-- Seção para a câmera e scanner -->
+    <main id="camera">
+        <video id="camera-view" autoplay playsinline style="width: 300px; height: 200px;"></video>
+        <canvas id="camera-sensor" style="display:none;"></canvas>
+        <button id="cameraButton">Abrir Câmera</button>
+        <button id="captureButton">Tirar Foto</button>
+    </main>
+    
+    <!-- Armazena capturas de tela na parte inferior -->
+    <div id="camera-output-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 20px;"></div>
+
+    <script src="js/main.js"></script>
+</body>
 </html>
