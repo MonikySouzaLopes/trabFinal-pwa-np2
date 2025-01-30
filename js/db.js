@@ -1,80 +1,99 @@
 import { openDB } from "idb";
+
 let db;
 
-async function createDB( ) {
-    try{
-        db = await openDB('banco', 1 , {
-            upgrade(db, oldeVersion, newVersion, transaction){
-                switch(oldeVersion){
-                    case 0:
-                    case 1: 
-                        const store = db.createObjectStore('pessoas', {
-                            //a propriedade nome será o campo chave
-                            keyPath:'nome'
-                        });
-                        //crinado um indice id na store, deve estar contido no objeto do banco.
-                        store.createIndex('id','id');
-                        showResult('Banco de dados criado!');
+async function createDB() {
+    try {
+        db = await openDB('banco', 1, {
+            upgrade(db, oldVersion) {
+                if (oldVersion < 1) {
+                    const store = db.createObjectStore('compras', {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    store.createIndex('nome', 'nome', { unique: false });
                 }
             }
         });
-        showResult('Banco de dados aberto');
-    }catch (e) {
-        showResult('Erro ao criar o banco de dados: '+ e.message)
+        console.log("Banco de dados criado e aberto.");
+    } catch (e) {
+        console.error("Erro ao criar o banco de dados:", e.message);
     }
 }
 
-window.addEventListener('DOMContentLoaded', async event =>{
-    createDB();
-    document.getElementById('input');
-    document.getElementById('btnSalvar').addEventListener('click', addData);
-    document.getElementById('btnListar').addEventListener('click', getData);
-})
+window.addEventListener("DOMContentLoaded", async () => {
+    await createDB();
 
-async function addData(nome) {
-    if (!db) {
-        console.error("O banco de dados ainda não foi inicializado.");
-        return;
+    const addItemButton = document.getElementById("addItem");
+    if (addItemButton) {
+        addItemButton.addEventListener("click", addData);
+    } else {
+        console.error("Elemento #addItem não encontrado no HTML.");
     }
-    const tx = db.transaction('compras', 'readwrite');
-    const store = tx.objectStore('compras');
-    try {
-        await store.add({ nome });
-        await tx.done;
-        console.log('Registro adicionado com sucesso!');
-    } catch (error) {
-        console.error('Erro ao adicionar registro:', error);
+
+    const itemList = document.getElementById("itemList");
+    if (itemList) {
+        itemList.addEventListener("click", getData);
+    } else {
+        console.error("Elemento #itemList não encontrado no HTML.");
     }
-}
+});
 
 async function getData() {
     if (!db) {
-        console.error("O banco de dados está fechado");
-        return [];
-    }
-    const tx = db.transaction('compras', 'readonly');
-    const store = tx.objectStore('compras');
-    return await store.getAll();
-}
-
-async function remover(id) {
-    if (!db) {
-        console.error("O banco de dados ainda não foi inicializado.");
+        console.error("O banco de dados não foi inicializado.");
         return;
     }
-    const tx = db.transaction('compras', 'readwrite');
-    const store = tx.objectStore('compras');
-    try {
-        await store.delete(id);
-        await tx.done;
-        console.log('Registro removido com sucesso!');
-    } catch (error) {
-        console.error('Erro ao remover registro:', error);
+
+    const tx = db.transaction("compras", "readonly");
+    const store = tx.objectStore("compras");
+    const items = await store.getAll();
+
+    const itemList = document.getElementById("itemList");
+    if (!itemList) {
+        console.error("Elemento #itemList não encontrado.");
+        return;
     }
+
+    itemList.innerHTML = items.map(item => `
+        <div class="compra">
+            <img src="${item.imagem || ''}" alt="Imagem do item">
+            <p class="nome">${item.nome}</p>
+        </div>
+    `).join("");
 }
 
-// Inicializa o banco de dados ao carregar o script
-createDB();
+async function addData() {
+    const nomeInput = document.getElementById("itemInput");
+    if (!nomeInput) {
+        console.error("Elemento #itemInput não encontrado.");
+        return;
+    }
 
-// Exportando funções para serem usadas em main.js
-export { addData, getData, remover };
+    const nome = nomeInput.value.trim();
+    if (!nome) {
+        console.warn("Nenhum nome foi inserido.");
+        return;
+    }
+
+    const cameraOutput = document.getElementById("camera--output");
+    const imagem = cameraOutput ? cameraOutput.src : "";
+
+    if (!db) {
+        console.error("Banco de dados não foi inicializado.");
+        return;
+    }
+
+    const tx = db.transaction("compras", "readwrite");
+    const store = tx.objectStore("compras");
+
+    try {
+        await store.add({ nome, imagem });
+        await tx.done;
+        nomeInput.value = "";
+        getData();
+        console.log("Registro adicionado com sucesso!");
+    } catch (error) {
+        console.error("Erro ao adicionar registro:", error);
+    }
+}

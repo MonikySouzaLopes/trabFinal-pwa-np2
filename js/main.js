@@ -1,103 +1,55 @@
-
-
-// Verifica se o navegador suporta Service Workers
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', async () => {
+// Service Worker
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", async () => {
         try {
-            let reg = await navigator.serviceWorker.register('/sw.js', { type: "module" });
-            console.log('Service worker registrado com sucesso:', reg);
+            let reg = await navigator.serviceWorker.register("/sw.js", { type: "module" });
+            console.log("Service worker registrado!", reg);
         } catch (err) {
-            console.log('Falha ao registrar o service worker:', err);
+            console.error("Falha ao registrar o service worker: ", err);
         }
     });
 }
 
-// Aguarda o carregamento do DOM
-document.addEventListener("DOMContentLoaded", async () => {
-    const cameraView = document.getElementById("camera-view");
-    const cameraSensor = document.getElementById("camera-sensor");
-    const cameraOutputContainer = document.getElementById("camera-output-container");
-    const cameraButton = document.getElementById("cameraButton");
-    const captureButton = document.getElementById("captureButton");
-    const cameraContainer = document.getElementById("camera-container");
-    const addItemButton = document.getElementById("addItem");
-    const itemInput = document.getElementById("itemInput");
-    const itemList = document.getElementById("itemList");
+window.onload = function () {
+    const cameraView = document.querySelector("#camera-view");
+    const cameraOutput = document.querySelector("#camera-output");
+    const cameraSensor = document.querySelector("#camera-sensor");
+    const cameraTrigger = document.querySelector("#camera--trigger");
 
-    // Lista de compras obtida do IndexedDB
-    let shoppingList = await getData();
+    if (!cameraView || !cameraOutput || !cameraSensor || !cameraTrigger) {
+        console.error("Um ou mais elementos da câmera não foram encontrados.");
+        return;
+    }
 
-    const configCamera = { video: { facingMode: "environment" }, audio: false };
-
-    function iniciarCamera() {
-        if (!cameraView) return;
-        
-        navigator.mediaDevices.getUserMedia(configCamera)
+    function cameraStart() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error("API da câmera não suportada pelo navegador.");
+            return;
+        }
+    
+        navigator.mediaDevices
+            .getUserMedia({ video: { facingMode: "user" }, audio: false })
             .then((stream) => {
                 cameraView.srcObject = stream;
-                cameraView.style.display = "block";
             })
             .catch((error) => {
-                console.error("Erro ao acessar a câmera:", error);
-                alert("Permita o acesso à câmera nas configurações do navegador.");
+                console.error("Erro ao acessar a câmera.", error);
             });
     }
+    
 
-    function capturarImagem() {
-        if (!cameraSensor || !cameraView || !cameraOutputContainer) return;
-
-        cameraSensor.width = cameraView.videoWidth / 3;
-        cameraSensor.height = cameraView.videoHeight / 3;
-        cameraSensor.getContext("2d").drawImage(cameraView, 0, 0, cameraSensor.width, cameraSensor.height);
-        
-        const img = document.createElement("img");
-        img.src = cameraSensor.toDataURL("image/webp");
-        img.style.width = "100px";
-        img.style.height = "75px";
-        img.style.margin = "5px";
-        img.style.border = "1px solid #000";
-
-        cameraOutputContainer.appendChild(img);
-    }
-
-    function atualizarLista() {
-        if (!itemList) return;
-
-        itemList.innerHTML = "";
-        shoppingList.forEach((item) => {
-            const li = document.createElement("li");
-            li.textContent = item.nome;
-
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "❌";
-            deleteButton.style.marginLeft = "10px";
-            deleteButton.onclick = async () => {
-                await remover(item.id);
-                shoppingList = await getData();
-                atualizarLista();
-            };
-
-            li.appendChild(deleteButton);
-            itemList.appendChild(li);
-        });
-    }
-
-    async function adicionarItem() {
-        if (!itemInput) return;
-
-        const item = itemInput.value.trim();
-        if (item) {
-            await addData(item);
-            shoppingList = await getData();
-            atualizarLista();
-            itemInput.value = "";
+    cameraTrigger.addEventListener("click", () => {
+        if (!cameraView.srcObject) {
+            console.error("A câmera não está ativa.");
+            return;
         }
-    }
 
-    if (addItemButton) addItemButton.addEventListener("click", adicionarItem);
-    if (cameraButton) cameraButton.addEventListener("click", iniciarCamera);
-    if (captureButton) captureButton.addEventListener("click", capturarImagem);
+        cameraSensor.width = cameraView.videoWidth;
+        cameraSensor.height = cameraView.videoHeight;
+        cameraSensor.getContext("2d").drawImage(cameraView, 0, 0);
+        cameraOutput.src = cameraSensor.toDataURL("image/webp");
+        cameraOutput.classList.add("taken");
+    });
 
-    atualizarLista();
-    iniciarCamera();
-});
+    cameraStart();
+};
